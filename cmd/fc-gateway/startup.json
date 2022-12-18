@@ -1,5 +1,6 @@
 {
 	"fc-restconf": {
+		"debug": true,
 		"web": {
 			"port": ":8090"
 		}

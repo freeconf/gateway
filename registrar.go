@@ -3,6 +3,7 @@ package gateway
 import (
 	"container/list"
 
+	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/nodeutil"
 )
 
@@ -32,27 +33,36 @@ func NewLocalRegistrar() *LocalRegistrar {
 	}
 }
 
-func (self *LocalRegistrar) LookupRegistration(deviceId string) (Registration, bool) {
-	found, reg := self.regs[deviceId]
+func InstallRegistrar(reg *LocalRegistrar, dev *device.Local) error {
+	if err := dev.Add("fc-gateway", RegistrarNode(reg)); err != nil {
+		return err
+	}
+	return dev.Add("fc-call-home-server", CallHomeServer(reg))
+}
+
+func (gw *LocalRegistrar) LookupRegistration(deviceId string) (Registration, bool) {
+	found, reg := gw.regs[deviceId]
 	return found, reg
 }
 
-func (self *LocalRegistrar) RegisterDevice(deviceId string, address string) {
-	self.regs[deviceId] = Registration{Address: address, DeviceId: deviceId}
+func (gw *LocalRegistrar) RegisterDevice(deviceId string, address string) {
+	reg := Registration{Address: address, DeviceId: deviceId}
+	gw.regs[deviceId] = reg
+	gw.updateListeners(reg)
 }
 
-func (self *LocalRegistrar) updateListeners(reg Registration) {
-	p := self.listeners.Front()
+func (gw *LocalRegistrar) updateListeners(reg Registration) {
+	p := gw.listeners.Front()
 	for p != nil {
 		p.Value.(RegisterListener)(reg)
-		p.Next()
+		p = p.Next()
 	}
 }
 
-func (self *LocalRegistrar) RegistrationCount() int {
-	return len(self.regs)
+func (gw *LocalRegistrar) RegistrationCount() int {
+	return len(gw.regs)
 }
 
-func (self *LocalRegistrar) OnRegister(l RegisterListener) nodeutil.Subscription {
-	return nodeutil.NewSubscription(self.listeners, self.listeners.PushBack(l))
+func (gw *LocalRegistrar) OnRegister(l RegisterListener) nodeutil.Subscription {
+	return nodeutil.NewSubscription(gw.listeners, gw.listeners.PushBack(l))
 }

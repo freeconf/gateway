@@ -35,7 +35,7 @@ func RegistrarNode(registrar Registrar) node.Node {
 	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
-			case "registrations":
+			case "registration":
 				return registrationsNode(registrar), nil
 			}
 			return nil, nil

@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	"github.com/freeconf/gateway"
 	"github.com/freeconf/restconf"
 
 	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/source"
 
 	"github.com/freeconf/yang/fc"
@@ -22,6 +22,7 @@ import (
 
 var startup = flag.String("startup", "startup.json", "startup configuration file.")
 var verbose = flag.Bool("verbose", false, "verbose")
+var ypathStr = flag.String("ypath", "yang", "location or locations (separated by ':') of yang files")
 
 //var webDir = flag.String("web", "", "web directory")
 var varDir = flag.String("var", "var", "directory to store files")
@@ -30,12 +31,7 @@ func main() {
 	flag.Parse()
 	fc.DebugLog(*verbose)
 
-	// where all yang files are stored
-	ypathEnv := os.Getenv("YANGPATH")
-	if ypathEnv == "" {
-		log.Fatal("YANGPATH environment variable not set")
-	}
-	ypath := source.Path(ypathEnv)
+	ypath := source.Path(*ypathStr)
 
 	// Even though this is a server component, we still organize things thru a device
 	// because this proxy will appear like a "Device" to application management systems
@@ -50,7 +46,7 @@ func main() {
 	gateway.NewService(d, m, reg)
 
 	d.Add("fc-gateway", gateway.RegistrarNode(reg))
-	d.Add("fc-call-home-server", gateway.CallHomeServer(reg))
+	d.Add("fc-call-home-server", nodeutil.Dump(gateway.CallHomeServer(reg), os.Stdout))
 
 	// Add RESTCONF service, if you had other protocols to add/replace
 	// you could do that here
