@@ -2,8 +2,11 @@
 	"fc-restconf": {
 		"debug": true,
 		"web": {
-			"port": ":8090"
+			"port": ":8090",
+			"writeTimeout": 0
 		}
+	},
+	"fc-call-home-server" : {		
 	},
 	"fc-gateway": {		
 	}

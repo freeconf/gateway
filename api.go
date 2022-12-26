@@ -3,14 +3,14 @@ package gateway
 import (
 	"strings"
 
-	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/restconf"
 	"github.com/freeconf/yang/val"
 
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
 )
 
-func CallHomeServer(registrar Registrar) node.Node {
+func CallHomeServer(registrar *LocalRegistrar) node.Node {
 	return &nodeutil.Basic{
 		OnAction: func(r node.ActionRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
@@ -20,10 +20,13 @@ func CallHomeServer(registrar Registrar) node.Node {
 					return nil, err
 				}
 				ctx := r.Selection.Context
-				if regAddr, hasRegAddr := ctx.Value(device.RemoteIpAddressKey).(string); hasRegAddr {
+				if regAddr, hasRegAddr := ctx.Value(restconf.RemoteIpAddressKey).(string); hasRegAddr {
 					reg.Address = strings.Replace(reg.Address, "{REQUEST_ADDRESS}", regAddr, 1)
 				}
 				registrar.RegisterDevice(reg.DeviceId, reg.Address)
+				return nil, nil
+			case "unregister":
+				// TODO : lookup registered address and remove that entry
 				return nil, nil
 			}
 			return nil, nil
@@ -31,7 +34,7 @@ func CallHomeServer(registrar Registrar) node.Node {
 	}
 }
 
-func RegistrarNode(registrar Registrar) node.Node {
+func RegistrarNode(registrar *LocalRegistrar) node.Node {
 	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
@@ -53,10 +56,10 @@ func RegistrarNode(registrar Registrar) node.Node {
 	}
 }
 
-func registrationsNode(registrar Registrar) node.Node {
+func registrationsNode(registrar *LocalRegistrar) node.Node {
 
 	// assume local registrar, need better way to iterate
-	index := node.NewIndex(registrar.(*LocalRegistrar).regs)
+	index := node.NewIndex(registrar.regs)
 
 	return &nodeutil.Basic{
 		OnNextItem: func(r node.ListRequest) nodeutil.BasicNextItem {

@@ -1,7 +1,9 @@
 export YANGPATH=$(abspath ./yang)
 
 test :
-	go test .
+	go test -coverprofile test-coverage.out . ./...
+	go tool cover -html=test-coverage.out -o test-coverage.html
+	go tool cover -func test-coverage.out
 
 # run on host in emulation mode
 run:
@@ -28,3 +30,10 @@ docs/api.md : ./yang/fc-gateway.yang
 # be run when freeconf dep is updated
 update-yang :
 	go run github.com/freeconf/yang/cmd/fc-yang get -dir ./yang
+
+.PHONY: fc-gateway
+fc-gateway :
+	go build -o $@ ./cmd/fc-gateway
+
+docker :
+	docker build -t fc-gateway .

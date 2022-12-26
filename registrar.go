@@ -10,6 +10,7 @@ import (
 type Registration struct {
 	DeviceId string
 	Address  string
+	Device   device.Device
 }
 
 type Registrar interface {
@@ -23,14 +24,20 @@ type RegisterListener func(Registration)
 
 type LocalRegistrar struct {
 	regs      map[string]Registration
+	proto     device.ProtocolHandler
 	listeners *list.List
 }
 
-func NewLocalRegistrar() *LocalRegistrar {
+func NewLocalRegistrar(proto device.ProtocolHandler) *LocalRegistrar {
 	return &LocalRegistrar{
+		proto:     proto,
 		regs:      make(map[string]Registration),
 		listeners: list.New(),
 	}
+}
+
+func (gw *LocalRegistrar) Device(deviceId string) (device.Device, error) {
+	return gw.regs[deviceId].Device, nil
 }
 
 func InstallRegistrar(reg *LocalRegistrar, dev *device.Local) error {
@@ -45,10 +52,15 @@ func (gw *LocalRegistrar) LookupRegistration(deviceId string) (Registration, boo
 	return found, reg
 }
 
-func (gw *LocalRegistrar) RegisterDevice(deviceId string, address string) {
-	reg := Registration{Address: address, DeviceId: deviceId}
+func (gw *LocalRegistrar) RegisterDevice(deviceId string, address string) error {
+	dev, err := gw.proto(address)
+	if err != nil {
+		return err
+	}
+	reg := Registration{Address: address, DeviceId: deviceId, Device: dev}
 	gw.regs[deviceId] = reg
 	gw.updateListeners(reg)
+	return nil
 }
 
 func (gw *LocalRegistrar) updateListeners(reg Registration) {
